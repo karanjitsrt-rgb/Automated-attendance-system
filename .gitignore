@@ -1,5 +1,9 @@
 # Firebase credentials
 firebase-key.json
+*firebase-adminsdk*.json
+
+# Generated data
+attendance_report.csv
 
 # Environment variables
 .env

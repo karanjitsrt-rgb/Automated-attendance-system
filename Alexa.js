@@ -1,74 +1,81 @@
-// Load environment variables
-require('dotenv').config();
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
+const cors = require("cors");
 const path = require('path');
 
 const app = express();
+app.use(cors());
 app.use(bodyParser.json());
 
-// Initialize Firebase Admin
-let serviceAccount;
-
-// Option 1: Use environment variables (recommended for production)
-if (process.env.FIREBASE_PROJECT_ID) {
-  serviceAccount = {
-    type: "service_account",
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-  };
-} else {
-  // Option 2: Use JSON key file (for development)
-  try {
-    serviceAccount = require(path.join(__dirname, 'firebase-key.json'));
-  } catch (error) {
-    console.error('❌ Firebase credentials not found!');
-    console.error('Please create firebase-key.json or set environment variables.');
-    console.error('See README.md for setup instructions.');
-    process.exit(1);
-  }
+const serviceAccount = require(path.join(__dirname, 'firebase-key.json'));
+if (!admin.apps.length) {
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
 const db = admin.firestore();
 
-/* Attendance API */
+// 1. Attendance Post Logic
 app.post("/attendance", async (req, res) => {
-  try {
-    const record = req.body;
+    try {
+        const { name, status } = req.body;
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const attendanceRef = db.collection("attendance");
+        const snapshot = await attendanceRef.where("name", "==", name).get();
 
-    await db.collection("attendance").add(record);
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            if (data.timestamp && data.timestamp.toDate() >= startOfDay) {
+                batch.delete(doc.ref);
+            }
+        });
+        await batch.commit();
 
-    /* SMS Trigger Logic */
-    if (record.status === "Absent") {
-      sendSMS(record);
-    }
-
-    res.send({ success: true });
-
-  } catch (err) {
-    res.status(500).send({ error: err.message });
-  }
+        await attendanceRef.add({
+            name,
+            status,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        res.send({ success: true });
+    } catch (err) { res.status(500).send({ error: err.message }); }
 });
 
-/* Fake SMS Function */
-function sendSMS(record) {
-  console.log(
-    `SMS → Parent of ${record.name}: छात्र आज अनुपस्थित था`
-  );
+// 2. Simple Login Route
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    
+    // Aapke naam ke hisaab se credentials update kar diye hain
+    if(username === "Roop Raj Kumar Shrivastava" && password === "12515864") {
+        res.send({ 
+            success: true, 
+            teacher: "Roop Raj Kumar Shrivastava", 
+            class: "BCA Data Science (LPU)" 
+        });
+    } else {
+        res.status(401).send({ success: false, message: "Username ya Password galat hai bhai!" });
+    }
+});
 
-  /* Real Integration Possible:
-     Twilio / Fast2SMS / Textlocal */
-}
+// 3. Reset Route
+app.delete("/reset-attendance", async (req, res) => {
+    try {
+        const snapshot = await db.collection("attendance").get();
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        res.send({ success: true });
+    } catch (err) { res.status(500).send(err.message); }
+});
 
-app.listen(3000, () =>
-  console.log("Server running on port 3000 🚀")
-);
+app.get("/get-attendance", async (req, res) => {
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const snapshot = await db.collection("attendance").where("timestamp", ">=", startOfDay).get();
+        const records = snapshot.docs.map(doc => doc.data());
+        res.send(records);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+app.listen(3000, () => console.log("Server running on port 3000 🚀"));

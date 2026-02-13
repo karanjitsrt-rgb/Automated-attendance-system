@@ -1,230 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Smart Attendance System</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #4e73df, #1cc88a);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance | Pro Teacher Portal</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* Login Screen Style */
+        #loginScreen { background: var(--card); padding: 40px; border-radius: 20px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); width: 350px; margin-top: 80px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 14px; margin: 12px 0; border-radius: 12px; border: none; background: rgba(15, 23, 42, 0.8); color: white; box-sizing: border-box; outline: none; border: 1px solid rgba(255,255,255,0.1); }
+        input:focus { border-color: var(--primary); }
+        
+        /* Dashboard Style */
+        #dashboard { display: none; width: 100%; max-width: 500px; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .app {
-      width: 400px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      overflow: hidden;
-    }
-
-    .header {
-      background: #4e73df;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .content { padding: 15px; }
-
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin: 6px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      color: white;
-      font-size: 13px;
-      margin-top: 6px;
-    }
-
-    .primary { background: #4e73df; }
-    .present { background: #1cc88a; }
-    .absent { background: #e74a3b; }
-    .export { background: #f6c23e; color: black; }
-
-    .student {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      margin: 6px 0;
-      border-radius: 8px;
-      background: #f8f9fc;
-      align-items: center;
-    }
-
-    .panel {
-      background: #f8f9fc;
-      padding: 10px;
-      font-size: 13px;
-      border-top: 1px solid #ddd;
-    }
-
-    .hidden { display: none; }
-  </style>
+        .roster-card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .student-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; background: rgba(255,255,255,0.05); color: white; opacity: 0.5; border: 2px solid transparent; transition: 0.3s; }
+        .active-p { background: #22c55e !important; opacity: 1 !important; border-color: #4ade80; box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+        .active-a { background: #ef4444 !important; opacity: 1 !important; border-color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        
+        .stats { display: flex; gap: 10px; margin-top: 20px; }
+        .stat-box { flex: 1; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .action-btn { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: white; transition: 0.3s; }
+        .submit-btn { background: #6366f1; }
+        .submit-btn:hover { background: #4f46e5; transform: translateY(-2px); }
+        .reset-btn { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 20px; }
+    </style>
 </head>
 <body>
 
-<div class="app">
+    <div id="loginScreen">
+        <h2 style="margin-bottom: 30px;">Teacher Login</h2>
+        <input type="text" id="user" placeholder="Username (ABCDEFGH)">
+        <input type="password" id="pass" placeholder="Password (123456)">
+        <button class="action-btn submit-btn" onclick="handleLogin()">Login</button>
+        <p style="font-size: 12px; opacity: 0.5; margin-top: 15px;">Tip: Use ABCDEFGH / 123456</p>
+    </div>
 
-  <div class="header">📘 Smart Attendance System</div>
+    <div id="dashboard">
+        <h2 id="teacherName" style="text-align: center;">Welcome 📝</h2>
+        <div style="text-align: center; font-size: 14px; opacity: 0.6; margin-bottom: 25px;" id="className">Class: BCA Data Science (LPU)</div>
 
-  <!-- LOGIN SCREEN -->
-  <div class="content" id="loginScreen">
-    <h3>Teacher Login</h3>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button class="primary" onclick="login()">Login</button>
-  </div>
+        <div class="roster-card" id="studentList"></div>
 
-  <!-- MAIN APP -->
-  <div class="content hidden" id="mainApp">
-
-    <select id="classSelect" onchange="renderStudents()">
-      <option value="8A">Class 8A</option>
-      <option value="8B">Class 8B</option>
-      <option value="9A">Class 9A</option>
-    </select>
-
-    <div id="students"></div>
-
-    <button class="export" onclick="exportCSV()">⬇ Export Report</button>
-  </div>
-
-  <div class="panel">
-    🌐 Network: <span id="network">Checking...</span><br>
-    🔄 Sync: <span id="sync">Idle</span>
-  </div>
-
-</div>
-
-<script>
-  /* Fake Database */
-  const classData = {
-    "8A": ["Rahul", "Anita", "Vikas"],
-    "8B": ["Pooja", "Karan", "Neha"],
-    "9A": ["Amit", "Sneha", "Rohit"]
-  };
-
-  function login() {
-    const user = document.getElementById("username").value;
-    const pass = document.getElementById("password").value;
-
-    if (user && pass) {
-      document.getElementById("loginScreen").classList.add("hidden");
-      document.getElementById("mainApp").classList.remove("hidden");
-      renderStudents();
-    } else {
-      alert("Enter credentials bhai 😄");
-    }
-  }
-
-  function renderStudents() {
-    const cls = document.getElementById("classSelect").value;
-    const container = document.getElementById("students");
-    container.innerHTML = "";
-
-    classData[cls].forEach(name => {
-      const div = document.createElement("div");
-      div.className = "student";
-
-      div.innerHTML = `
-        <span>${name}</span>
-        <div>
-          <button class="present" onclick="mark('${cls}','${name}','Present')">Present</button>
-          <button class="absent" onclick="mark('${cls}','${name}','Absent')">Absent</button>
+        <div class="stats">
+            <div class="stat-box">
+                <div style="font-size: 11px; opacity: 0.7;">PRESENT</div>
+                <div id="pCount" style="font-size:24px; color:#4ade80; font-weight:bold;">0</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 11px; opacity: 0.7;">ABSENT</div>
+                <div id="aCount" style="font-size:24px; color:#f87171; font-weight:bold;">0</div>
+            </div>
         </div>
-      `;
-      container.appendChild(div);
-    });
-  }
 
-  function mark(cls, name, status) {
-    const record = {
-      class: cls,
-      name: name,
-      date: new Date().toLocaleDateString(),
-      status: status,
-      synced: false
-    };
+        <button class="action-btn submit-btn" style="margin-top: 25px;" onclick="finalSubmit()">FINAL SUBMIT REPORT</button>
+        <button class="action-btn reset-btn" onclick="resetData()">RESET TODAY'S SESSION</button>
+    </div>
 
-    let data = JSON.parse(localStorage.getItem("attendance")) || [];
-    data.push(record);
-    localStorage.setItem("attendance", JSON.stringify(data));
+    <script>
+        const students = ["Partik", "Salman", "Aditya", "Aryan", "Sharukesh", "Karanjit", "Garav", "Abhishek","Raj", "Satyarth", "Yash", "Shivam",];
 
-    document.getElementById("sync").innerText = "Saved Offline ✅";
-  }
+        async function handleLogin() {
+            const username = document.getElementById('user').value;
+            const password = document.getElementById('pass').value;
 
-  function updateNetwork() {
-    document.getElementById("network").innerText =
-      navigator.onLine ? "Online ✅" : "Offline ❌";
-  }
+            try {
+                const res = await fetch('http://localhost:3000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
 
-  /* API Style Sync Simulation */
-  function syncEngine() {
-    if (!navigator.onLine) return;
+                if(data.success) {
+                    // Login successful hote hi screen switch karo
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    document.getElementById('teacherName').innerText = `Welcome, ${data.teacher} 📝`;
+                    loadRoster();
+                    updateStats();
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert("Bhai, server chalu hai? Terminal check karo!");
+            }
+        }
 
-    let data = JSON.parse(localStorage.getItem("attendance")) || [];
-    let pending = data.filter(r => !r.synced);
+        function loadRoster() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = "";
+            students.forEach(name => {
+                list.innerHTML += `<div class="student-row">
+                    <span>${name}</span>
+                    <div class="btn-group">
+                        <button id="p-${name}" class="btn" onclick="mark('${name}', 'Present')">P</button>
+                        <button id="a-${name}" class="btn" onclick="mark('${name}', 'Absent')">A</button>
+                    </div></div>`;
+            });
+        }
 
-    if (pending.length === 0) {
-      document.getElementById("sync").innerText = "No Pending Data";
-      return;
-    }
+        async function mark(name, status) {
+            const pBtn = document.getElementById(`p-${name}`);
+            const aBtn = document.getElementById(`a-${name}`);
 
-    document.getElementById("sync").innerText = "Syncing to Server...";
+            if(status === 'Present') {
+                pBtn.className = 'btn active-p';
+                aBtn.className = 'btn';
+            } else {
+                aBtn.className = 'btn active-a';
+                pBtn.className = 'btn';
+            }
 
-    setTimeout(() => {
-      data.forEach(r => r.synced = true);
-      localStorage.setItem("attendance", JSON.stringify(data));
-      document.getElementById("sync").innerText = "Synced ✅";
-    }, 700);
-  }
+            try {
+                await fetch('http://localhost:3000/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, status })
+                });
+                setTimeout(updateStats, 300); // Thoda delay sync ke liye
+            } catch (e) { console.error(e); }
+        }
 
-  /* Export CSV Report */
-  function exportCSV() {
-    let data = JSON.parse(localStorage.getItem("attendance")) || [];
+        async function updateStats() {
+            try {
+                const res = await fetch('http://localhost:3000/get-attendance');
+                const data = await res.json();
+                let p = 0, a = 0;
+                
+                // Sabhi buttons reset karke highlights load karo
+                students.forEach(name => {
+                    const pb = document.getElementById(`p-${name}`);
+                    const ab = document.getElementById(`a-${name}`);
+                    if(pb) pb.className = 'btn';
+                    if(ab) ab.className = 'btn';
+                });
 
-    if (data.length === 0) {
-      alert("No data to export");
-      return;
-    }
+                data.forEach(r => {
+                    if(r.status === 'Present') {
+                        p++;
+                        const btn = document.getElementById(`p-${r.name}`);
+                        if(btn) btn.className = 'btn active-p';
+                    } else {
+                        a++;
+                        const btn = document.getElementById(`a-${r.name}`);
+                        if(btn) btn.className = 'btn active-a';
+                    }
+                });
 
-    let csv = "Class,Name,Date,Status\n";
-    data.forEach(r => {
-      csv += `${r.class},${r.name},${r.date},${r.status}\n`;
-    });
+                document.getElementById('pCount').innerText = p;
+                document.getElementById('aCount').innerText = a;
+            } catch (e) { console.error(e); }
+        }
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
+        function finalSubmit() {
+            const p = document.getElementById('pCount').innerText;
+            const a = document.getElementById('aCount').innerText;
+            alert(`Report Generated Successfully!\nPresent: ${p}\nAbsent: ${a}\nClass: BCA Data Science`);
+        }
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "attendance_report.csv";
-    a.click();
-  }
-
-  window.addEventListener("online", syncEngine);
-
-  setInterval(() => {
-    updateNetwork();
-    syncEngine();
-  }, 3000);
-
-  updateNetwork();
-</script>
-
+        async function resetData() {
+            if(confirm("Bhai, kya aap sach me aaj ka pura data reset karna chahte ho?")) {
+                try {
+                    await fetch('http://localhost:3000/reset-attendance', { method: 'DELETE' });
+                    location.reload();
+                } catch (e) { alert("Error resetting data."); }
+            }
+        }
+    </script>
 </body>
 </html>
