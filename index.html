@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance | Pro Teacher Portal</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* Login Screen Style */
+        #loginScreen { background: var(--card); padding: 40px; border-radius: 20px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); width: 350px; margin-top: 80px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 14px; margin: 12px 0; border-radius: 12px; border: none; background: rgba(15, 23, 42, 0.8); color: white; box-sizing: border-box; outline: none; border: 1px solid rgba(255,255,255,0.1); }
+        input:focus { border-color: var(--primary); }
+        
+        /* Dashboard Style */
+        #dashboard { display: none; width: 100%; max-width: 500px; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .roster-card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .student-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; background: rgba(255,255,255,0.05); color: white; opacity: 0.5; border: 2px solid transparent; transition: 0.3s; }
+        .active-p { background: #22c55e !important; opacity: 1 !important; border-color: #4ade80; box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+        .active-a { background: #ef4444 !important; opacity: 1 !important; border-color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        
+        .stats { display: flex; gap: 10px; margin-top: 20px; }
+        .stat-box { flex: 1; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .action-btn { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: white; transition: 0.3s; }
+        .submit-btn { background: #6366f1; }
+        .submit-btn:hover { background: #4f46e5; transform: translateY(-2px); }
+        .reset-btn { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen">
+        <h2 style="margin-bottom: 30px;">Teacher Login</h2>
+        <input type="text" id="user" placeholder="Username (ABCDEFGH)">
+        <input type="password" id="pass" placeholder="Password (123456)">
+        <button class="action-btn submit-btn" onclick="handleLogin()">Login</button>
+        <p style="font-size: 12px; opacity: 0.5; margin-top: 15px;">Tip: Use ABCDEFGH / 123456</p>
+    </div>
+
+    <div id="dashboard">
+        <h2 id="teacherName" style="text-align: center;">Welcome 📝</h2>
+        <div style="text-align: center; font-size: 14px; opacity: 0.6; margin-bottom: 25px;" id="className">Class: BCA Data Science (LPU)</div>
+
+        <div class="roster-card" id="studentList"></div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div style="font-size: 11px; opacity: 0.7;">PRESENT</div>
+                <div id="pCount" style="font-size:24px; color:#4ade80; font-weight:bold;">0</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 11px; opacity: 0.7;">ABSENT</div>
+                <div id="aCount" style="font-size:24px; color:#f87171; font-weight:bold;">0</div>
+            </div>
+        </div>
+
+        <button class="action-btn submit-btn" style="margin-top: 25px;" onclick="finalSubmit()">FINAL SUBMIT REPORT</button>
+        <button class="action-btn reset-btn" onclick="resetData()">RESET TODAY'S SESSION</button>
+    </div>
+
+    <script>
+        const students = ["Partik", "Salman", "Aditya", "Aryan", "Sharukesh", "Karanjit", "Garav", "Abhishek","Raj", "Satyarth", "Yash", "Shivam",];
+
+        async function handleLogin() {
+            const username = document.getElementById('user').value;
+            const password = document.getElementById('pass').value;
+
+            try {
+                const res = await fetch('http://localhost:3000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+
+                if(data.success) {
+                    // Login successful hote hi screen switch karo
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    document.getElementById('teacherName').innerText = `Welcome, ${data.teacher} 📝`;
+                    loadRoster();
+                    updateStats();
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert("Bhai, server chalu hai? Terminal check karo!");
+            }
+        }
+
+        function loadRoster() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = "";
+            students.forEach(name => {
+                list.innerHTML += `<div class="student-row">
+                    <span>${name}</span>
+                    <div class="btn-group">
+                        <button id="p-${name}" class="btn" onclick="mark('${name}', 'Present')">P</button>
+                        <button id="a-${name}" class="btn" onclick="mark('${name}', 'Absent')">A</button>
+                    </div></div>`;
+            });
+        }
+
+        async function mark(name, status) {
+            const pBtn = document.getElementById(`p-${name}`);
+            const aBtn = document.getElementById(`a-${name}`);
+
+            if(status === 'Present') {
+                pBtn.className = 'btn active-p';
+                aBtn.className = 'btn';
+            } else {
+                aBtn.className = 'btn active-a';
+                pBtn.className = 'btn';
+            }
+
+            try {
+                await fetch('http://localhost:3000/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, status })
+                });
+                setTimeout(updateStats, 300); // Thoda delay sync ke liye
+            } catch (e) { console.error(e); }
+        }
+
+        async function updateStats() {
+            try {
+                const res = await fetch('http://localhost:3000/get-attendance');
+                const data = await res.json();
+                let p = 0, a = 0;
+                
+                // Sabhi buttons reset karke highlights load karo
+                students.forEach(name => {
+                    const pb = document.getElementById(`p-${name}`);
+                    const ab = document.getElementById(`a-${name}`);
+                    if(pb) pb.className = 'btn';
+                    if(ab) ab.className = 'btn';
+                });
+
+                data.forEach(r => {
+                    if(r.status === 'Present') {
+                        p++;
+                        const btn = document.getElementById(`p-${r.name}`);
+                        if(btn) btn.className = 'btn active-p';
+                    } else {
+                        a++;
+                        const btn = document.getElementById(`a-${r.name}`);
+                        if(btn) btn.className = 'btn active-a';
+                    }
+                });
+
+                document.getElementById('pCount').innerText = p;
+                document.getElementById('aCount').innerText = a;
+            } catch (e) { console.error(e); }
+        }
+
+        function finalSubmit() {
+            const p = document.getElementById('pCount').innerText;
+            const a = document.getElementById('aCount').innerText;
+            alert(`Report Generated Successfully!\nPresent: ${p}\nAbsent: ${a}\nClass: BCA Data Science`);
+        }
+
+        async function resetData() {
+            if(confirm("Bhai, kya aap sach me aaj ka pura data reset karna chahte ho?")) {
+                try {
+                    await fetch('http://localhost:3000/reset-attendance', { method: 'DELETE' });
+                    location.reload();
+                } catch (e) { alert("Error resetting data."); }
+            }
+        }
+    </script>
+</body>
+</html>
