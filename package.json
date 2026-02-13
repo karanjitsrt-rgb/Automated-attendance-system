@@ -1,0 +1,21 @@
+{
+  "name": "hackthon-2.0",
+  "version": "1.0.0",
+  "description": "Smart Attendance System with Firebase backend",
+  "main": "Alexa.js",
+  "scripts": {
+    "start": "node Alexa.js",
+    "dev": "node Alexa.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["attendance", "firebase", "express"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.6.1"
+  }
+}

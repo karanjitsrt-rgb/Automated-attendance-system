@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Attendance System</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4e73df, #1cc88a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .app {
+      width: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #4e73df;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .content { padding: 15px; }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .primary { background: #4e73df; }
+    .present { background: #1cc88a; }
+    .absent { background: #e74a3b; }
+    .export { background: #f6c23e; color: black; }
+
+    .student {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      background: #f8f9fc;
+      align-items: center;
+    }
+
+    .panel {
+      background: #f8f9fc;
+      padding: 10px;
+      font-size: 13px;
+      border-top: 1px solid #ddd;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">📘 Smart Attendance System</div>
+
+  <!-- LOGIN SCREEN -->
+  <div class="content" id="loginScreen">
+    <h3>Teacher Login</h3>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button class="primary" onclick="login()">Login</button>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="content hidden" id="mainApp">
+
+    <select id="classSelect" onchange="renderStudents()">
+      <option value="8A">Class 8A</option>
+      <option value="8B">Class 8B</option>
+      <option value="9A">Class 9A</option>
+    </select>
+
+    <div id="students"></div>
+
+    <button class="export" onclick="exportCSV()">⬇ Export Report</button>
+  </div>
+
+  <div class="panel">
+    🌐 Network: <span id="network">Checking...</span><br>
+    🔄 Sync: <span id="sync">Idle</span>
+  </div>
+
+</div>
+
+<script>
+  /* Fake Database */
+  const classData = {
+    "8A": ["Rahul", "Anita", "Vikas"],
+    "8B": ["Pooja", "Karan", "Neha"],
+    "9A": ["Amit", "Sneha", "Rohit"]
+  };
+
+  function login() {
+    const user = document.getElementById("username").value;
+    const pass = document.getElementById("password").value;
+
+    if (user && pass) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("mainApp").classList.remove("hidden");
+      renderStudents();
+    } else {
+      alert("Enter credentials bhai 😄");
+    }
+  }
+
+  function renderStudents() {
+    const cls = document.getElementById("classSelect").value;
+    const container = document.getElementById("students");
+    container.innerHTML = "";
+
+    classData[cls].forEach(name => {
+      const div = document.createElement("div");
+      div.className = "student";
+
+      div.innerHTML = `
+        <span>${name}</span>
+        <div>
+          <button class="present" onclick="mark('${cls}','${name}','Present')">Present</button>
+          <button class="absent" onclick="mark('${cls}','${name}','Absent')">Absent</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function mark(cls, name, status) {
+    const record = {
+      class: cls,
+      name: name,
+      date: new Date().toLocaleDateString(),
+      status: status,
+      synced: false
+    };
+
+    let data = JSON.parse(localStorage.getItem("attendance")) || [];
+    data.push(record);
+    localStorage.setItem("attendance", JSON.stringify(data));
+
+    document.getElementById("sync").innerText = "Saved Offline ✅";
+  }
+
+  function updateNetwork() {
+    document.getElementById("network").innerText =
+      navigator.onLine ? "Online ✅" : "Offline ❌";
+  }
+
+  /* API Style Sync Simulation */
+  function syncEngine() {
+    if (!navigator.onLine) return;
+
+    let data = JSON.parse(localStorage.getItem("attendance")) || [];
+    let pending = data.filter(r => !r.synced);
+
+    if (pending.length === 0) {
+      document.getElementById("sync").innerText = "No Pending Data";
+      return;
+    }
+
+    document.getElementById("sync").innerText = "Syncing to Server...";
+
+    setTimeout(() => {
+      data.forEach(r => r.synced = true);
+      localStorage.setItem("attendance", JSON.stringify(data));
+      document.getElementById("sync").innerText = "Synced ✅";
+    }, 700);
+  }
+
+  /* Export CSV Report */
+  function exportCSV() {
+    let data = JSON.parse(localStorage.getItem("attendance")) || [];
+
+    if (data.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    let csv = "Class,Name,Date,Status\n";
+    data.forEach(r => {
+      csv += `${r.class},${r.name},${r.date},${r.status}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "attendance_report.csv";
+    a.click();
+  }
+
+  window.addEventListener("online", syncEngine);
+
+  setInterval(() => {
+    updateNetwork();
+    syncEngine();
+  }, 3000);
+
+  updateNetwork();
+</script>
+
+</body>
+</html>
