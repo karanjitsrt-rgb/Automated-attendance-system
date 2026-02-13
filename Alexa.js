@@ -9,7 +9,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-const serviceAccount = require(path.join(__dirname, 'firebase-key.json'));
+// Support both environment variable (for Render) and local file
+let serviceAccount;
+if (process.env.FIREBASE_CONFIG) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
+} else {
+    serviceAccount = require(path.join(__dirname, 'firebase-key.json'));
+}
+
 if (!admin.apps.length) {
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
